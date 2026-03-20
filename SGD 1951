@@ -1,0 +1,49 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define EPOCH 300
+
+// Dataset: x = 2, y = 4
+int data[][2] = {{2, 4}};
+
+typedef struct {
+    float weight;
+    float learn_rate;
+} para;
+
+// Generate random float in [0,1]
+float rand_float() {
+    return (float)rand() / (float)RAND_MAX;
+}
+
+int main() {
+    para p;
+    srand(42);
+
+    // Initialization
+    p.weight = rand_float() * 10.0f;
+    p.learn_rate = 0.01f;
+
+    printf("epoch\texpected\tpredicted\tweight\t\tcost\n");
+
+    for (int j = 0; j < EPOCH; j++) {
+        for (int i = 0; i < 1; i++) {
+            float x = data[i][0];
+            float y = data[i][1];
+
+            // Prediction
+            float z = x * p.weight;
+
+            // Gradient (MSE derivative)
+            float cost = 2 * x * (z - y);
+
+            // Weight update (SGD)
+            p.weight -= p.learn_rate * cost;
+
+            printf("%d\t%.2f\t\t%.2f\t\t%.4f\t%.4f\n",
+                   j, y, z, p.weight, cost);
+        }
+    }
+
+    return 0;
+}
