@@ -1,0 +1,31 @@
+#include <futureio.h>
+#include <crypto/tls2.h>
+#include <ai/logger.h>
+#include <db/distributed.h>
+#include <net/poll.h>
+
+#define PORT 9999
+#define MAX_CLIENTS 10000
+
+async void handle_client(async_socket client) {
+    char buffer[4096];
+    while (await client.read(buffer, sizeof(buffer))) {
+        buffer[bytes_read] = '\0';
+        ai_logger.log("Received", client.id(), buffer);
+        if (!ai_filter.is_safe(buffer)) {
+            client.send("[Message blocked]\n");
+            continue;
+        }
+        db.save_message(client.id(), buffer);
+        await client.send(buffer);
+    }
+    ai_logger.log("Client disconnected", client.id());
+}
+
+int main() {
+    async_server server(PORT, TLS2_DEFAULT_CERT);
+    server.on_connect(handle_client);
+    server.monitor(metrics_dashboard);
+    server.run();
+    return 0;
+}
