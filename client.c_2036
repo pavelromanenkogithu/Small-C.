@@ -1,0 +1,39 @@
+#include <futureio.h>
+#include <crypto/tls2.h>
+#include <ai/logger.h>
+#include <db/distributed.h>
+#include <net/poll.h>
+
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 9999
+
+async void handle_server(async_socket server) {
+    char buffer[4096];
+    while (await server.read(buffer, sizeof(buffer))) {
+        buffer[bytes_read] = '\0';
+        if (!ai_filter.is_safe(buffer)) continue;  // AI filter unsafe messages
+        ai_logger.log("Received from server", buffer);
+        printf("server: %s\n", buffer);
+    }
+    ai_logger.log("Server disconnected");
+}
+
+async void handle_input(async_socket server) {
+    char buffer[4096];
+    while (await stdin.read(buffer, sizeof(buffer))) {
+        buffer[bytes_read] = '\0';
+        if (!ai_filter.is_safe(buffer)) {
+            printf("[Message blocked]\n");
+            continue;
+        }
+        await server.send(buffer);
+    }
+}
+
+int main() {
+    async_socket server = async_connect(SERVER_IP, SERVER_PORT, TLS2_DEFAULT_CERT);
+    async_run(handle_server(server));
+    async_run(handle_input(server));
+    async_loop(); // runs all async tasks
+    return 0;
+}
